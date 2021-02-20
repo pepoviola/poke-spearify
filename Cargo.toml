@@ -1,0 +1,22 @@
+[package]
+name = "poke-spearify"
+version = "0.1.0"
+authors = ["Javier Viola <viola.villanueva.javier@gmail.com>"]
+edition = "2018"
+
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+path = "src/main.rs"
+name = "poke-spearify"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+tide = "0.16.0"
+async-std = { version = "1.9.0", features = ["attributes"] }
+dotenv = "0.15"
+serde = { version = "1.0.115", features = ["derive"] }
+surf = { version = "2.1.0" }
+
