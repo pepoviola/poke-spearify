@@ -7,7 +7,7 @@ async fn main() {
     dotenv::dotenv().ok();
 
     tide::log::start();
-    let port = std::env::var("PORT").unwrap_or("8080".to_string());
+    let port = std::env::var("PORT").unwrap_or(String::from("8080"));
 
     let app = server::build().await;
     let mut listener = app
