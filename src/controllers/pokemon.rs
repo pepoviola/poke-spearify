@@ -1,10 +1,10 @@
 use serde::{Deserialize, Serialize};
-use tide::{Request, Response, Body};
+use tide::{Body, Request, Response};
 
 #[derive(Deserialize, Serialize)]
 struct PokemonResponse {
     name: String,
-    description: String
+    description: String,
 }
 
 pub async fn get(req: Request<()>) -> tide::Result {
