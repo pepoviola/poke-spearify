@@ -49,7 +49,7 @@ async fn fetch_pokemon(pokemon_url: &str) -> Result<Pokemon, tide::Error> {
     let status: u16 = res.status().into();
     match status {
         200 => {
-            let pokemon: Pokemon = res.body_json().await.map_err(|e|{
+            let pokemon: Pokemon = res.body_json().await.map_err(|e| {
                 tide::log::error!("Error: {}, deserializing response to Pokemon", e);
                 tide::Error::from_str(500, "Unexpected Error".to_string())
             })?;
