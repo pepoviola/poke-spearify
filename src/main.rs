@@ -1,4 +1,5 @@
 use tide::prelude::*;
+use tide_tracing::TraceMiddleware;
 
 use poke_spearify::server;
 use poke_spearify::wrappers::pokemon;
@@ -13,7 +14,9 @@ async fn main() {
     let shakespeare_wrapper = shakespeare::ShakespeareWrapper::new();
     let pokemon_wrapper = pokemon::PokemonWrapper::new();
 
-    let app = server::build(shakespeare_wrapper, pokemon_wrapper).await;
+    let mut app = server::build(shakespeare_wrapper, pokemon_wrapper).await;
+
+    app.with(TraceMiddleware::new());
 
     let port = std::env::var("PORT").unwrap_or_else(|_| String::from("5000"));
     let mut listener = app
