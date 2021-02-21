@@ -49,7 +49,10 @@ async fn fetch_pokemon(pokemon_url: &str) -> Result<Pokemon, tide::Error> {
     let status: u16 = res.status().into();
     match status {
         200 => {
-            let pokemon: Pokemon = res.body_json().await.unwrap();
+            let pokemon: Pokemon = res.body_json().await.map_err(|e|{
+                tide::log::error!("Error: {}, deserializing response to Pokemon", e);
+                tide::Error::from_str(500, "Unexpected Error".to_string())
+            })?;
             Ok(pokemon)
         }
         404 => Err(tide::Error::from_str(404, "Not Found".to_string())),
@@ -142,6 +145,33 @@ mod tests {
         assert_eq!(true, description.is_err());
 
         let status_code = description.err().unwrap().status();
+        assert_eq!(tide::http::StatusCode::InternalServerError, status_code);
+
+        Ok(())
+    }
+
+    #[async_std::test]
+    async fn fetch_pokemon_parse_error() -> std::result::Result<(), tide::Error> {
+        let mock_server = MockServer::start().await;
+        let existing_pokemon = "charizard";
+        let mock_path = format!("{}{}", POKEMON_PATH, existing_pokemon.to_string());
+
+        const CHARIZARD_CONTENT: &str = include_str!("../../samples/charizard_bad.json");
+
+        let response = ResponseTemplate::new(200).set_body_json(CHARIZARD_CONTENT);
+
+        Mock::given(method("GET"))
+            .and(path(&mock_path))
+            .respond_with(response)
+            .mount(&mock_server)
+            .await;
+
+        let pokemon_url = format!("{}{}", &mock_server.uri(), &mock_path);
+        let pokemon_result = fetch_pokemon(&pokemon_url).await;
+
+        assert_eq!(true, pokemon_result.is_err());
+
+        let status_code = pokemon_result.err().unwrap().status();
         assert_eq!(tide::http::StatusCode::InternalServerError, status_code);
 
         Ok(())
