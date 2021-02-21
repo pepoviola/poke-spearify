@@ -109,6 +109,6 @@ $ curl localhost:5000/pokemon/charizard
 
 - [ ] Add requestId to logs.
 - [ ] Add better logging middleware.
-- [ ] Add tracing.
+- [ ] Add observability provider (e.g honeycomb).
 - [ ] Add cache.
 - [ ] Add UI.
