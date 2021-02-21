@@ -15,7 +15,7 @@ async fn main() {
 
     let app = server::build(shakespeare_wrapper, pokemon_wrapper).await;
 
-    let port = std::env::var("PORT").unwrap_or_else(|_| String::from("8080"));
+    let port = std::env::var("PORT").unwrap_or_else(|_| String::from("5000"));
     let mut listener = app
         .bind(format!("0.0.0.0:{}", port))
         .await
