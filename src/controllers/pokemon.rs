@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use tide::{Body, Request, Response};
 
+// use crate::wrappers;
+
 #[derive(Deserialize, Serialize)]
 struct PokemonResponse {
     name: String,
@@ -9,6 +11,7 @@ struct PokemonResponse {
 
 pub async fn get(req: Request<()>) -> tide::Result {
     let pokemon_name = req.param("pokemon_name")?;
+
     let pokemon = PokemonResponse {
         name: pokemon_name.to_string(),
         description: "some".into(),
