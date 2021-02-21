@@ -20,6 +20,9 @@ dotenv = "0.15"
 serde = { version = "1.0.115", features = ["derive"] }
 surf = { version = "2.1.0" }
 tide-tracing = { version = "0.0.8" }
+log = "0.4.11"
+uuid = { version = "0.8.1", features = ["serde","v4"]}
+kv-log-macro = { version = "1.0.7" }
 
 [dev-dependencies]
 wiremock = "0.4.9"
