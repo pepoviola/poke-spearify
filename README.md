@@ -66,3 +66,49 @@ You can set following environment variables
 - RUST_LOG, set the log level.
 - PORT, the port number to listen. Default to `5000`.
 - TRANSLATION_API_KEY, [funtranslations](https://funtranslations.com/api/shakespeare) has a rate limit of 60 API calls a day with distribution of 5 calls an hour. **If** you have a subscription you can set your `API SECRET` here.
+
+
+## How to build and run  with Docker
+
+To run this project as a container you need first to build the `image` with the following command:
+
+```bash
+$ docker build -t poke-spearify:latest .
+```
+
+We can check the `image`
+```bash
+$ docker image ls
+REPOSITORY                    TAG           IMAGE ID       CREATED          SIZE
+poke-spearify                 latest        849123371151   10 minutes ago   82.4MB
+```
+
+Run the server (*detached and binding port 5000 to localhost*)
+
+```bash
+$ docker run -d -p 5000:5000 --rm poke-spearify
+```
+
+Now we can follow the logs
+
+```bash
+$ docker logs $(docker ps | grep poke-spearify | awk '{print $1}') --follow
+{"level":30,"time":1613931181710,"msg":"Logger started","level":Info}
+Server listening on http://0.0.0.0:5000
+```
+
+And *in another* terminal make a test request
+
+```bash
+$ curl localhost:5000/pokemon/charizard
+{"name":"charizard","description":"Spits fire yond is hot enow to melt boulders. Known to cause forest fires unintentionally."}
+```
+
+
+## Possible improvements
+
+- [ ] Add requestId to logs.
+- [ ] Add better logging middleware.
+- [ ] Add tracing.
+- [ ] Add cache.
+- [ ] Add UI.
