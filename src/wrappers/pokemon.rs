@@ -1,5 +1,7 @@
 use serde::Deserialize;
 
+const POKEMON_SERVICE_URI: &str = "https://pokeapi.co";
+pub const POKEMON_SERVICE_PATH: &str = "/api/v2/pokemon-species/";
 #[derive(Deserialize, Debug)]
 struct Pokemon {
     flavor_text_entries: Vec<FlavorText>,
@@ -14,6 +16,38 @@ struct FlavorText {
 #[derive(Deserialize, Debug)]
 struct Language {
     name: String,
+}
+
+#[derive(Clone, Debug)]
+pub struct PokemonWrapper {
+    base_url: String,
+}
+
+impl PokemonWrapper {
+    pub fn new() -> Self {
+        Self {
+            base_url: POKEMON_SERVICE_URI.to_string(),
+        }
+    }
+
+    pub fn with_base_url(base_url: &str) -> Self {
+        Self {
+            base_url: base_url.to_string(),
+        }
+    }
+
+    pub async fn get_description(&self, pokemon_name: &str) -> Result<String, tide::Error> {
+        let pokemon_url = format!("{}{}{}", self.base_url, POKEMON_SERVICE_PATH, pokemon_name);
+        let pokemon = fetch_pokemon(&pokemon_url).await?;
+        let description = pokemon.get_description()?;
+        Ok(description)
+    }
+}
+
+impl Default for PokemonWrapper {
+    fn default() -> Self {
+        PokemonWrapper::new()
+    }
 }
 
 impl Pokemon {
@@ -34,13 +68,6 @@ impl Pokemon {
             .join(" ");
         Ok(parsed_description)
     }
-}
-
-pub async fn get_description(pokemon_name: &str) -> Result<String, tide::Error> {
-    let pokemon_url = format!("https://pokeapi.co/api/v2/pokemon-species/{}", pokemon_name);
-    let pokemon = fetch_pokemon(&pokemon_url).await?;
-    let description = pokemon.get_description()?;
-    Ok(description)
 }
 
 async fn fetch_pokemon(pokemon_url: &str) -> Result<Pokemon, tide::Error> {
@@ -67,13 +94,11 @@ mod tests {
     use wiremock::matchers::{method, path};
     use wiremock::{Mock, MockServer, ResponseTemplate};
 
-    const POKEMON_PATH: &str = "/api/v2/pokemon-species/";
-
     #[async_std::test]
     async fn fetch_pokemon_description() -> std::result::Result<(), tide::Error> {
         let mock_server = MockServer::start().await;
         let existing_pokemon = "charizard";
-        let mock_path = format!("{}{}", POKEMON_PATH, existing_pokemon.to_string());
+        let mock_path = format!("{}{}", POKEMON_SERVICE_PATH, existing_pokemon.to_string());
 
         const CHARIZARD_CONTENT: &str = include_str!("../../samples/charizard.json");
 
@@ -100,7 +125,11 @@ mod tests {
     async fn fetch_non_existing_pokemon_description() -> std::result::Result<(), tide::Error> {
         let mock_server = MockServer::start().await;
         let non_existing_pokemon = "nocharizard";
-        let mock_path = format!("{}{}", POKEMON_PATH, non_existing_pokemon.to_string());
+        let mock_path = format!(
+            "{}{}",
+            POKEMON_SERVICE_PATH,
+            non_existing_pokemon.to_string()
+        );
 
         Mock::given(method("GET"))
             .and(path(&mock_path))
@@ -123,7 +152,7 @@ mod tests {
     async fn fetch_pokemon_without_description() -> std::result::Result<(), tide::Error> {
         let mock_server = MockServer::start().await;
         let existing_pokemon = "charizard";
-        let mock_path = format!("{}{}", POKEMON_PATH, existing_pokemon.to_string());
+        let mock_path = format!("{}{}", POKEMON_SERVICE_PATH, existing_pokemon.to_string());
 
         const CHARIZARD_CONTENT: &str = include_str!("../../samples/charizard_without_desc.json");
 
@@ -154,7 +183,7 @@ mod tests {
     async fn fetch_pokemon_parse_error() -> std::result::Result<(), tide::Error> {
         let mock_server = MockServer::start().await;
         let existing_pokemon = "charizard";
-        let mock_path = format!("{}{}", POKEMON_PATH, existing_pokemon.to_string());
+        let mock_path = format!("{}{}", POKEMON_SERVICE_PATH, existing_pokemon.to_string());
 
         const CHARIZARD_CONTENT: &str = include_str!("../../samples/charizard_bad.json");
 
