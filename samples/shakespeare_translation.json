@@ -1,0 +1,10 @@
+{
+    "success": {
+        "total": 1
+    },
+    "contents": {
+        "translated": "Rust, a language empowering everyone to buildeth reliable and efficient software.",
+        "text": "Rust, a language empowering everyone to build reliable and efficient software.",
+        "translation": "shakespeare"
+    }
+}
