@@ -107,6 +107,7 @@ $ curl localhost:5000/pokemon/charizard
 
 ## Possible improvements
 
-- [ ] Add observability provider (e.g honeycomb).
+- [ ] Improve error handling.
 - [ ] Add cache, to memoize 3rd party api responses.
+- [ ] Add observability provider (e.g honeycomb).
 - [ ] Add UI.

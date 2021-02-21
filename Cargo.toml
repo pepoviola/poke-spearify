@@ -23,6 +23,8 @@ tide-tracing = { version = "0.0.8" }
 log = "0.4.11"
 uuid = { version = "0.8.1", features = ["serde","v4"]}
 kv-log-macro = { version = "1.0.7" }
+thiserror = { version = "1.0.24" }
+anyhow = { version = "1.0.38" }
 
 [dev-dependencies]
 wiremock = "0.4.9"
