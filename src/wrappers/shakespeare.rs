@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 const TRANSLATION_SERVICE_URI: &str = "https://api.funtranslations.com";
-const TRANSLATION_SHAKESPEARE_PATH: &str = "/translate/shakespeare.json";
+pub const TRANSLATION_SHAKESPEARE_PATH: &str = "/translate/shakespeare.json";
 const TRANSLATION_API_KEY_HEADER: &str = "X-FunTranslations-Api-Secret";
 
 #[derive(Deserialize, Debug)]
@@ -25,30 +25,61 @@ struct InputText {
     text: String,
 }
 
-pub async fn get_translation(translation_input: &str) -> Result<String, tide::Error> {
-    let tranlation_request_url = format!(
-        "{}{}",
-        TRANSLATION_SERVICE_URI, TRANSLATION_SHAKESPEARE_PATH
-    );
-    let translated_text = fetch_translation(&tranlation_request_url, translation_input).await?;
-    Ok(translated_text)
+#[derive(Clone, Debug)]
+pub struct ShakespeareWrapper {
+    base_url: String,
+    api_key: Option<String>,
+}
+
+impl ShakespeareWrapper {
+    pub fn new() -> Self {
+        Self {
+            base_url: TRANSLATION_SERVICE_URI.to_string(),
+            api_key: None,
+        }
+    }
+
+    pub fn with_base_url(base_url: &str) -> Self {
+        Self {
+            base_url: base_url.to_string(),
+            api_key: None,
+        }
+    }
+
+    /// Set the shakespeare wrapper's api key.
+    pub fn set_api_key(&mut self, api_key: Option<String>) {
+        self.api_key = api_key;
+    }
+
+    pub async fn get_translation(&self, translation_input: &str) -> Result<String, tide::Error> {
+        let tranlation_request_url = format!("{}{}", self.base_url, TRANSLATION_SHAKESPEARE_PATH);
+        let translated_text =
+            fetch_translation(&tranlation_request_url, translation_input, &self.api_key).await?;
+        Ok(translated_text)
+    }
+}
+
+impl Default for ShakespeareWrapper {
+    fn default() -> Self {
+        ShakespeareWrapper::new()
+    }
 }
 
 async fn fetch_translation(
     translation_url: &str,
     translation_input: &str,
+    api_key: &Option<String>,
 ) -> Result<String, tide::Error> {
     let text = InputText {
         text: translation_input.to_string(),
     };
 
-    // let api_key = std::env::var("TRANSLATION_API_KEY").unwrap_or_else(|_| String::from("8080"));
     let mut req = surf::post(translation_url)
         .body(surf::Body::from_json(&text)?)
         .build();
 
-    if let Ok(api_key) = std::env::var("TRANSLATION_API_KEY") {
-        req.set_header(TRANSLATION_API_KEY_HEADER, api_key);
+    if let Some(api_key) = api_key {
+        req.set_header(TRANSLATION_API_KEY_HEADER, api_key.to_string());
     }
 
     let client = surf::client();
@@ -101,6 +132,7 @@ mod tests {
         let translated_text: String = fetch_translation(
             &request_url,
             "Rust, a language empowering everyone to build reliable and efficient software.",
+            &None,
         )
         .await?;
 
@@ -126,6 +158,7 @@ mod tests {
         let translation_response = fetch_translation(
             &request_url,
             "Rust, a language empowering everyone to build reliable and efficient software.",
+            &None,
         )
         .await;
 
@@ -155,6 +188,7 @@ mod tests {
         let translation_response = fetch_translation(
             &request_url,
             "Rust, a language empowering everyone to build reliable and efficient software.",
+            &None,
         )
         .await;
 
