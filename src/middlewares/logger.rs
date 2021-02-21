@@ -64,37 +64,6 @@ impl LogMiddleware {
         let res = next.run(req).await;
         let status = res.status();
 
-        // if let Some(correlation_id) = res.ext::<CorrelationId>() {
-        //     if let Some(error) = res.error() {
-        //         error!("Internal Error", {
-        //             status: status as u16,
-        //             method: method.as_ref(),
-        //             path: path,
-        //             ip: ip,
-        //             referer: referer,
-        //             user_agent: user_agent,
-        //             message: format!("{:?}", error),
-        //             error_type: error.type_name(),
-        //             correlation_id: correlation_id,
-        //             request_id: request_id,
-        //             honeycomb_trace_id: honeycomb_trace_id.map(|v| v.to_string()),
-        //             elapsed: format!("{:?}", start.elapsed()),
-        //         });
-        //     } else {
-        //         error!("Internal Error", {
-        //             status: status as u16,
-        //             method: method.as_ref(),
-        //             path: path,
-        //             ip: ip,
-        //             referer: referer,
-        //             user_agent: user_agent,
-        //             correlation_id: correlation_id,
-        //             request_id: request_id,
-        //             honeycomb_trace_id: honeycomb_trace_id.map(|v| v.to_string()),
-        //             elapsed: format!("{:?}", start.elapsed()),
-        //         });
-        //     }
-        // } else if status.is_server_error() {
         if status.is_server_error() {
             // Programmer error, always expect there to be JsonErrorMiddleware,
             // which will catch internal server errors first and assign them a correlation id.
