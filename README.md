@@ -4,6 +4,13 @@ What if the description of each Pokémon were to be writting using Shakespeare's
 
 It's use the [poke api](https://pokeapi.co/) to get the description of the given pokémon and the [fun translation api](https://funtranslations.com/api/shakespeare) to translate to Shakespeare's style.
 
+You can try the api live in [poke-spearify](https://poke-spearify.labs.javierviola.com/).
+
+```bash
+curl  https://poke-spearify.labs.javierviola.com/pokemon/charizard
+{"name":"charizard","description":"Spits fire yond is hot enow to melt boulders. Known to cause forest fires unintentionally."}
+```
+
 ## Requeriments
 
 - [Rust](https://www.rust-lang.org/), this project is written in `rust` and is required to build it. You can follow the [get started guide](https://www.rust-lang.org/learn/get-started) to install the toolchain.
