@@ -177,3 +177,50 @@ async fn get_non_existing_pokemon() -> tide::Result<()> {
 
     Ok(())
 }
+
+#[async_std::test]
+async fn over_quota_in_translation() -> tide::Result<()> {
+    dotenv::dotenv().ok();
+
+    // arrenge wrappers mocks
+    let mock_pokemon_server = MockServer::start().await;
+    let existing_pokemon = "charizard";
+    let mock_path = format!(
+        "{}{}",
+        pokemon::POKEMON_SERVICE_PATH,
+        existing_pokemon.to_string()
+    );
+
+    const CHARIZARD_CONTENT: &str = include_str!("../samples/charizard.json");
+
+    let charizard_as_json: serde_json::Value = serde_json::from_str(&CHARIZARD_CONTENT).unwrap();
+    let response = ResponseTemplate::new(200).set_body_json(charizard_as_json);
+
+    Mock::given(method("GET"))
+        .and(path(&mock_path))
+        .respond_with(response)
+        .mount(&mock_pokemon_server)
+        .await;
+
+    let mock_translation_server = MockServer::start().await;
+
+    Mock::given(method("POST"))
+        .and(path(shakespeare::TRANSLATION_SHAKESPEARE_PATH))
+        .respond_with(ResponseTemplate::new(429))
+        .mount(&mock_translation_server)
+        .await;
+
+    // act
+    let shakespeare_wrapper =
+        shakespeare::ShakespeareWrapper::with_base_url(&mock_translation_server.uri());
+    let pokemon_wrapper = pokemon::PokemonWrapper::with_base_url(&mock_pokemon_server.uri());
+    let app = server::build(shakespeare_wrapper, pokemon_wrapper).await;
+
+    let pokemon_url = format!("https://example.com/pokemon/{}", existing_pokemon);
+    let res = surf::Client::with_http_client(app).get(pokemon_url).await?;
+
+    // assert
+    assert_eq!(429, res.status());
+
+    Ok(())
+}
