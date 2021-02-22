@@ -1,3 +1,4 @@
+use crate::wrappers::errors::WrapperError;
 use serde::{Deserialize, Serialize};
 
 const TRANSLATION_SERVICE_URI: &str = "https://api.funtranslations.com";
@@ -51,7 +52,7 @@ impl ShakespeareWrapper {
         self.api_key = api_key;
     }
 
-    pub async fn get_translation(&self, translation_input: &str) -> Result<String, tide::Error> {
+    pub async fn get_translation(&self, translation_input: &str) -> Result<String, WrapperError> {
         let tranlation_request_url = format!("{}{}", self.base_url, TRANSLATION_SHAKESPEARE_PATH);
         let translated_text =
             fetch_translation(&tranlation_request_url, translation_input, &self.api_key).await?;
@@ -69,13 +70,16 @@ async fn fetch_translation(
     translation_url: &str,
     translation_input: &str,
     api_key: &Option<String>,
-) -> Result<String, tide::Error> {
+) -> Result<String, WrapperError> {
     let text = InputText {
         text: translation_input.to_string(),
     };
 
     let mut req = surf::post(translation_url)
-        .body(surf::Body::from_json(&text)?)
+        .body(surf::Body::from_json(&text).map_err(|_| {
+            tide::log::error!("Error encoding request");
+            WrapperError::UnexpectedError
+        })?)
         .build();
 
     if let Some(api_key) = api_key {
@@ -83,26 +87,29 @@ async fn fetch_translation(
     }
 
     let client = surf::client();
-    let mut res = client.send(req).await?;
+    let mut res = client.send(req).await.map_err(|_| {
+        tide::log::error!("Error returned by translation service");
+        WrapperError::UnexpectedError
+    })?;
 
     let status: u16 = res.status().into();
     match status {
         200 => {
             let translation: Translation = res.body_json().await.map_err(|e| {
                 tide::log::error!("Error: {}, deserializing response to Translation", e);
-                tide::Error::from_str(500, "Unexpected Error".to_string())
+                WrapperError::UnexpectedError
             })?;
 
             match translation.success.total {
                 1 => Ok(translation.contents.translated),
                 _ => {
                     tide::log::error!("Error returned by translation service");
-                    Err(tide::Error::from_str(500, "Unexpected Error".to_string()))
+                    Err(WrapperError::UnexpectedError)
                 }
             }
         }
-        429 => Err(tide::Error::from_str(429, "Too Many Requests".to_string())),
-        _ => Err(tide::Error::from_str(500, "Unexpected Error".to_string())),
+        429 => Err(WrapperError::TooManyRequests),
+        _ => Err(WrapperError::UnexpectedError),
     }
 }
 
@@ -164,8 +171,10 @@ mod tests {
 
         assert_eq!(true, translation_response.is_err());
 
-        let status_code = translation_response.err().unwrap().status();
-        assert_eq!(tide::http::StatusCode::InternalServerError, status_code);
+        assert_eq!(
+            WrapperError::UnexpectedError,
+            translation_response.err().unwrap()
+        );
 
         Ok(())
     }
@@ -194,8 +203,10 @@ mod tests {
 
         assert_eq!(true, translation_response.is_err());
 
-        let status_code = translation_response.err().unwrap().status();
-        assert_eq!(tide::http::StatusCode::InternalServerError, status_code);
+        assert_eq!(
+            WrapperError::UnexpectedError,
+            translation_response.err().unwrap()
+        );
 
         Ok(())
     }

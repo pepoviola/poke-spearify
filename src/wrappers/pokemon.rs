@@ -1,3 +1,4 @@
+use crate::wrappers::errors::WrapperError;
 use serde::Deserialize;
 
 const POKEMON_SERVICE_URI: &str = "https://pokeapi.co";
@@ -36,7 +37,7 @@ impl PokemonWrapper {
         }
     }
 
-    pub async fn get_description(&self, pokemon_name: &str) -> Result<String, tide::Error> {
+    pub async fn get_description(&self, pokemon_name: &str) -> Result<String, WrapperError> {
         let pokemon_url = format!("{}{}{}", self.base_url, POKEMON_SERVICE_PATH, pokemon_name);
         let pokemon = fetch_pokemon(&pokemon_url).await?;
         let description = pokemon.get_description()?;
@@ -51,12 +52,12 @@ impl Default for PokemonWrapper {
 }
 
 impl Pokemon {
-    fn get_description(&self) -> Result<String, tide::Error> {
+    fn get_description(&self) -> Result<String, WrapperError> {
         let description = self
             .flavor_text_entries
             .iter()
             .find(|desc| desc.language.name == "en")
-            .ok_or_else(|| tide::Error::from_str(500, "Unexpected Error".to_string()))?;
+            .ok_or(WrapperError::NoDescription)?;
 
         // The api description is multiline with `\n` and also contains `\u{c}` sequence
         // here we parse the description to be one line without the `\u{c}` sequence.
@@ -70,20 +71,23 @@ impl Pokemon {
     }
 }
 
-async fn fetch_pokemon(pokemon_url: &str) -> Result<Pokemon, tide::Error> {
-    let mut res = surf::get(pokemon_url).await?;
+async fn fetch_pokemon(pokemon_url: &str) -> Result<Pokemon, WrapperError> {
+    let mut res = surf::get(pokemon_url).await.map_err(|e| {
+        tide::log::error!("Error: {}, getting response from Pokemon API", e);
+        WrapperError::UnexpectedError
+    })?;
 
     let status: u16 = res.status().into();
     match status {
         200 => {
             let pokemon: Pokemon = res.body_json().await.map_err(|e| {
                 tide::log::error!("Error: {}, deserializing response to Pokemon", e);
-                tide::Error::from_str(500, "Unexpected Error".to_string())
+                WrapperError::ParsingError
             })?;
             Ok(pokemon)
         }
-        404 => Err(tide::Error::from_str(404, "Not Found".to_string())),
-        _ => Err(tide::Error::from_str(500, "Unexpected Error".to_string())),
+        404 => Err(WrapperError::NotFound),
+        _ => Err(WrapperError::UnexpectedError),
     }
 }
 
@@ -142,8 +146,7 @@ mod tests {
 
         assert_eq!(true, pokemon.is_err());
 
-        let status_code = pokemon.err().unwrap().status();
-        assert_eq!(tide::http::StatusCode::NotFound, status_code);
+        assert_eq!(WrapperError::NotFound, pokemon.err().unwrap());
 
         Ok(())
     }
@@ -173,8 +176,7 @@ mod tests {
 
         assert_eq!(true, description.is_err());
 
-        let status_code = description.err().unwrap().status();
-        assert_eq!(tide::http::StatusCode::InternalServerError, status_code);
+        assert_eq!(WrapperError::NoDescription, description.err().unwrap());
 
         Ok(())
     }
@@ -200,8 +202,7 @@ mod tests {
 
         assert_eq!(true, pokemon_result.is_err());
 
-        let status_code = pokemon_result.err().unwrap().status();
-        assert_eq!(tide::http::StatusCode::InternalServerError, status_code);
+        assert_eq!(WrapperError::ParsingError, pokemon_result.err().unwrap());
 
         Ok(())
     }
