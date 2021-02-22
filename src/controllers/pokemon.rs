@@ -25,7 +25,15 @@ pub async fn get(req: Request<State>) -> tide::Result {
             _ => tide::Error::from_str(500, "Unexpected Error".to_string()),
         })?;
     let shakespeare_wrapper = req.state().shakespeare_wrapper.clone();
-    let translated_description = shakespeare_wrapper.get_translation(&description).await?;
+    let translated_description = shakespeare_wrapper
+        .get_translation(&description)
+        .await
+        .map_err(|e| match e {
+            WrapperError::TooManyRequests => {
+                tide::Error::from_str(429, "Too Many Requests".to_string())
+            }
+            _ => tide::Error::from_str(500, "Unexpected Error".to_string()),
+        })?;
 
     let pokemon = PokemonResponse {
         name: pokemon_name.to_string(),
